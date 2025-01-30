@@ -27,10 +27,11 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest  # Adicione testes unitários se necessário
+          export PYTHONPATH=$PYTHONPATH:$(pwd)  # Adiciona o diretório raiz ao PYTHONPATH
+          python -m pytest tests/ -v  # Roda os testes com verbosidade
 
   train:
-    needs: test
+    needs: test  # Só executa se o job 'test' passar
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -57,7 +58,7 @@ jobs:
           path: model.pth
 
   deploy:
-    needs: train
+    needs: train  # Só executa se o job 'train' passar
     runs-on: ubuntu-latest
     steps:
       - name: Download model artifact

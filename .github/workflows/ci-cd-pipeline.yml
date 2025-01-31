@@ -42,7 +42,7 @@ jobs:
         run: python model/train.py
 
       - name: Armazenar modelo treinado
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4  # 🔄 Atualizado para v4
         with:
           name: trained-model
           path: model/model.pth
@@ -63,7 +63,7 @@ jobs:
         run: pip install -r api/requirements.txt
 
       - name: Baixar modelo treinado
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4  # 🔄 Atualizado para v4
         with:
           name: trained-model
           path: model/

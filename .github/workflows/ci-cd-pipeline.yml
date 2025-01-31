@@ -49,7 +49,7 @@ jobs:
           path: model/model.pth
 
   simulate:
-    needs: deploy  # 🚀 A simulação agora acontece depois do deploy!
+    needs: train  # 🚀 A simulação agora acontece depois do deploy!
     runs-on: ubuntu-latest
     steps:
       - name: Instalar dependências
@@ -59,7 +59,7 @@ jobs:
         run: python user/simulate_user.py
 
   deploy:
-    needs: train  
+    needs: simulate  
     runs-on: ubuntu-latest
     timeout-minutes: 10  
     steps:
@@ -82,4 +82,3 @@ jobs:
 
       - name: Rodar API com FastAPI
         run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &  # Rodar em background
-        

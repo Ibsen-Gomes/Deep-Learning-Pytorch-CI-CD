@@ -1,6 +1,6 @@
 # 30-01-2025
 
-# Script básico para treinamento
+# Script básico para teste básico das funcionalidades dos códigos
 
 import torch
 import sys

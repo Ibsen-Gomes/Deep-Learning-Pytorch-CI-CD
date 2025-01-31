@@ -81,5 +81,5 @@ jobs:
         run: pip install -r api/requirements.txt
 
       - name: Simular um usuário enviando uma imagem para a API
-        run: python simulate_user.py
+        run: python user/simulate_user.py
 

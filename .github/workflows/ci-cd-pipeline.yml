@@ -48,39 +48,32 @@ jobs:
           name: trained-model
           path: model/model.pth
 
-deploy-and-simulate:
-  needs: train
-  runs-on: ubuntu-latest
-  timeout-minutes: 10
-  steps:
-    - name: Checkout do código
-      uses: actions/checkout@v2
+  deploy:
+    needs: train  
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v2
 
-    - name: Configurar Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.9"
+      - name: Configurar Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
 
-    - name: Instalar dependências
-      run: pip install -r api/requirements.txt
+      - name: Instalar dependências
+        run: pip install -r api/requirements.txt
 
-    - name: Baixar modelo treinado
-      uses: actions/download-artifact@v4
-      with:
-        name: trained-model
-        path: model/
+      - name: Baixar modelo treinado
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-model
+          path: model/
 
-    - name: Rodar API com FastAPI e simular usuário
-      run: |
-        # Inicia o servidor em segundo plano
-        uvicorn api.main:app --host 0.0.0.0 --port 8000 &
-        SERVER_PID=$!
+      - name: Rodar API com FastAPI
+        run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &  # Rodar em background
 
-        # Espera o servidor iniciar
-        sleep 10
+      - name: Simular um usuário enviando uma imagem para a API
+        run: python user/simulate_user.py
 
-        # Executa o script de simulação
-        python simulate_user.py
-
-        # Interrompe o servidor após a simulação
-        kill $SERVER_PID
+        

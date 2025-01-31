@@ -1,32 +1,31 @@
-name: CI/CD for Deep Learning  # Nome do workflow
+name: CI/CD for Deep Learning  # Nome do pipeline
 
-# Evento que aciona o workflow
 on:
   push:
     branches:
       - main
-      - feature/simulate-user  # 🚀 Adicionando a nova branch ao pipeline
+      - feature/simulate-user  # 🚀 Incluindo a nova branch no pipeline
 
 jobs:
   test:
-    runs-on: ubuntu-latest  # Define o ambiente de execução como a última versão do Ubuntu
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout do código  # Baixa o código do repositório
         uses: actions/checkout@v2
 
-      - name: Configurar Python  # Configura o ambiente Python
+      - name: Configurar Python  # Define a versão do Python
         uses: actions/setup-python@v3
         with:
-          python-version: "3.9"  # Define a versão do Python
+          python-version: "3.9"
 
-      - name: Instalar dependências  # Instala as dependências listadas no arquivo requirements.txt
+      - name: Instalar dependências  # Instala pacotes listados no requirements.txt
         run: pip install -r api/requirements.txt
 
-      - name: Testar modelo  # Executa os testes unitários para o modelo
+      - name: Testar modelo  # Executa testes unitários antes do treino
         run: pytest tests/test_train.py
 
   train:
-    needs: test  # O job de treinamento depende do job de teste
+    needs: test  # Só executa se os testes passarem
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
@@ -40,19 +39,19 @@ jobs:
       - name: Instalar dependências
         run: pip install -r api/requirements.txt
 
-      - name: Treinar modelo  # Treina o modelo utilizando o script especificado
+      - name: Treinar modelo  # Executa o treinamento do modelo
         run: python model/train.py
 
-      - name: Armazenar modelo treinado  # Armazena o modelo treinado como um artefato
+      - name: Armazenar modelo treinado  # Salva o modelo treinado como artefato
         uses: actions/upload-artifact@v4
         with:
           name: trained-model
           path: model/model.pth
 
   deploy:
-    needs: train  # O job de deploy depende do job de treinamento
+    needs: train  # Só executa após o treinamento ser concluído
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # Define um tempo limite para o job
+    timeout-minutes: 10  # Define tempo limite de 10 min para o deploy
     steps:
       - name: Checkout do código
         uses: actions/checkout@v2
@@ -65,17 +64,23 @@ jobs:
       - name: Instalar dependências
         run: pip install -r api/requirements.txt
 
-      - name: Baixar modelo treinado  # Baixa o modelo treinado armazenado no job anterior
+      - name: Baixar modelo treinado  # Baixa o modelo gerado na etapa train
         uses: actions/download-artifact@v4
         with:
           name: trained-model
           path: model/
 
-      - name: Rodar API com FastAPI  # Inicia a API utilizando o FastAPI
-        run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &  # Rodar em background
+      - name: Rodar API com FastAPI  # Inicia a API para servir o modelo
+        run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &  # Executa em background
 
-      - name: Simular um usuário enviando uma imagem para a API  # Executa o script que simula um usuário
+  simulate:
+    needs: deploy  # 🚀 Agora a simulação só ocorre após o deploy bem-sucedido
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar dependências  # Garante que as bibliotecas estão disponíveis
+        run: pip install -r api/requirements.txt
+
+      - name: Simular um usuário enviando uma imagem para a API
         run: python user/simulate_user.py
-
 
         

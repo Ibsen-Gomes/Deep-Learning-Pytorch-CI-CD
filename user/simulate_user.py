@@ -2,43 +2,39 @@
 
 # 
 
-import torch  # Importa a biblioteca PyTorch para manipulação de tensores e criação de redes neurais
-from torchvision import datasets, transforms  # Importa módulos do torchvision para manipulação de datasets e transformação de dados
-import requests  # Importa a biblioteca requests para fazer requisições HTTP
-import random  # Importa a biblioteca random para geração de números aleatórios
+import requests
+import torch
+from torchvision import datasets, transforms
+import random
+import io
 
-# URL da API hospedada no Heroku (substitua pela URL do seu app)
-API_URL = "https://nome-do-seu-app.herokuapp.com/predict"
+# URL da API de previsão (troque pelo endereço correto do servidor)
+API_URL = "http://meuservidor.com/predict"
 
-# Carregar um dado de validação
+# Carregar o conjunto de validação MNIST
 val_dataset = datasets.MNIST(
-    ".",  # Diretório onde o dataset será salvo
-    train=False,  # Define que é o conjunto de dados de validação (não de treinamento)
-    download=True,  # Baixa o dataset se não estiver presente no diretório
-    transform=transforms.ToTensor()  # Transforma as imagens em tensores
+    root=".",  # Diretório onde o dataset será salvo
+    train=False,  # Define que é o conjunto de validação
+    download=True,  # Baixa o dataset caso não exista
+    transform=transforms.ToTensor()  # Converte as imagens para tensores
 )
 
-# Escolher uma imagem aleatória
-idx = random.randint(0, len(val_dataset) - 1)  # Gera um índice aleatório entre 0 e o tamanho do dataset de validação
-image, label = val_dataset[idx]  # Seleciona a imagem e o rótulo correspondente no índice aleatório
+# Escolher uma imagem aleatória do dataset
+idx = random.randint(0, len(val_dataset) - 1)
+image, label = val_dataset[idx]  # Pegamos a imagem e seu rótulo verdadeiro
 
-# Transformar para formato esperado pelo modelo
-image = image.view(-1, 28 * 28)  # Achata a imagem para um vetor 1D com 28*28 elementos
+# Converter o tensor da imagem para bytes (necessário para enviar via API)
+image_bytes = io.BytesIO()
+torch.save(image, image_bytes)  # Salvar como bytes
+image_bytes.seek(0)  # Posicionar no início do arquivo de bytes
 
-# Simular envio para a API (JSON)
-try:
-    # Faz uma requisição POST para a URL da API com a imagem transformada em bytes
-    response = requests.post(
-        API_URL,  # URL da API para onde a requisição será enviada
-        files={"file": image.numpy().tobytes()}  # Converte a imagem para bytes e a envia como um arquivo
-    )
-    response.raise_for_status()  # Verifica se a requisição foi bem-sucedida (código de status 200)
-    
-    # Imprime a classe real da imagem e a classe prevista pelo modelo, que é recebida da resposta da API
-    print(f"Classe real: {label}")
-    print(f"Classe prevista pelo modelo: {response.json().get('class')}")
-except requests.exceptions.RequestException as e:
-    # Captura exceções relacionadas à requisição e imprime uma mensagem de erro
-    print(f"Erro ao conectar à API: {e}")
+# Enviar solicitação para a API com a imagem
+files = {"file": image_bytes.getvalue()}  # Criar o payload da requisição
+response = requests.post(API_URL, files=files)
+
+# Exibir a resposta da API
+print(f"Classe real: {label}")
+print(f"Classe prevista pelo modelo: {response.json().get('class')}")
+
 
 

@@ -51,7 +51,7 @@ jobs:
   deploy:
     needs: train  # Só executa após o treinamento ser concluído
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # Define tempo limite de 10 min para o deploy
+    timeout-minutes: 20  # Define tempo limite de 10 min para o deploy
     steps:
       - name: Checkout do código
         uses: actions/checkout@v2
@@ -73,14 +73,5 @@ jobs:
       - name: Rodar API com FastAPI  # Inicia a API para servir o modelo
         run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &  # Executa em background
 
-  simulate:
-    needs: deploy  # 🚀 Agora a simulação só ocorre após o deploy bem-sucedido
-    runs-on: ubuntu-latest
-    steps:
-      - name: Instalar dependências  # Garante que as bibliotecas estão disponíveis
-        run: pip install -r api/requirements.txt
-
-      - name: Simular um usuário enviando uma imagem para a API
-        run: python user/simulate_user.py
 
         

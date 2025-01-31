@@ -52,6 +52,14 @@ jobs:
     needs: train  # 🚀 A simulação agora acontece depois do deploy!
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout do código
+        uses: actions/checkout@v2
+
+      - name: Configurar Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+          
       - name: Instalar dependências
         run: pip install -r api/requirements.txt
 

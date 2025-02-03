@@ -12,6 +12,7 @@ import torch.nn as nn
 # Criar API FastAPI
 app = FastAPI()
 
+
 # 🔹 Definir a arquitetura do modelo (deve ser igual ao modelo treinado!)
 class NeuralNet(nn.Module):
     def __init__(self):

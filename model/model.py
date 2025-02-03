@@ -2,6 +2,10 @@
 
 # Script básico para modelo
 
+# 30-01-2025
+
+# Script básico para modelo
+
 # src/model.py
 import torch.nn as nn
 

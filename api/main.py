@@ -1,5 +1,7 @@
 # 30-01-2025
 
+# 30-01-2025
+
 # Script básico para treinamento
 
 from fastapi import FastAPI, UploadFile, File
@@ -36,6 +38,26 @@ transform = transforms.Compose([
     transforms.Resize((28, 28)),
     transforms.ToTensor()
 ])
+
+@app.get("/")  
+def home():
+    return {"message": "API de Deep Learning está rodando!"}
+
+@app.post("https://deep-learning-pytorch-ci-cd-1.onrender.com/predict")  # 🔹 A rota precisa existir aqui!
+async def predict(file: UploadFile = File(...)):
+    """Recebe uma imagem e retorna a previsão do modelo"""
+    
+    # Ler a imagem enviada pelo usuário
+    image = Image.open(io.BytesIO(await file.read()))
+    image = transform(image).unsqueeze(0)  # Adicionar dimensão do batch
+    
+    # Fazer previsão
+    with torch.no_grad():
+        output = model(image)
+        predicted_class = torch.argmax(output, dim=1).item()
+
+    return {"class": predicted_class}
+
 
 @app.get("/")  
 def home():

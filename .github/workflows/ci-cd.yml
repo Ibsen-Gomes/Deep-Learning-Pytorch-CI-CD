@@ -1,0 +1,80 @@
+name: CI/CD for Deep Learning
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v2
+
+      - name: Configurar Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+
+      - name: Instalar dependências
+        run: pip install -r api/requirements.txt
+
+      - name: Testar modelo
+        run: pytest tests/test_train.py
+
+  train:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v2
+
+      - name: Configurar Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+
+      - name: Instalar dependências
+        run: pip install -r api/requirements.txt
+
+      - name: Treinar modelo
+        run: python model/train.py
+
+      - name: Armazenar modelo treinado
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: model/model.pth
+
+  deploy:
+    needs: train
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v2
+
+      - name: Configurar Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+
+      - name: Instalar dependências
+        run: pip install -r api/requirements.txt
+
+      - name: Baixar modelo treinado
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-model
+          path: model/
+
+      - name: Implantar no Render
+        run: |
+          # Instalar o Render CLI (se necessário)
+          npm install -g render-cli
+
+          # Fazer login no Render
+          render login
+
+          # Implantar o serviço
+          render services create --name deep-learning-api --type web --start-command "uvicorn api.main:app --host 0.0.0.0 --port 8000"

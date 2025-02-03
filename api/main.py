@@ -11,70 +11,31 @@ import torch
 import io
 import torch.nn as nn
 
-# Criar API FastAPI
 app = FastAPI()
 
-# 🔹 Definir a arquitetura do modelo (deve ser igual ao modelo treinado!)
-class NeuralNet(nn.Module):
-    def __init__(self):
-        super(NeuralNet, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 128)
-        self.fc2 = nn.Linear(128, 10)
+# Carregar o modelo treinado
+model = torch.load('model/model.pth')
+model.eval()
 
-    def forward(self, x):
-        x = x.view(-1, 28 * 28)  # Flatten
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
-
-# 🔹 Criar o modelo e carregar os pesos corretamente
-model = NeuralNet()
-model.load_state_dict(torch.load("model/model.pth", map_location=torch.device("cpu")))
-model.eval()  # Agora funcionará sem erro!
-
-# Transformação para pré-processamento das imagens
+# Transformações para a imagem de entrada
 transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.Resize((28, 28)),
-    transforms.ToTensor()
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-@app.get("/")  
-def home():
-    return {"message": "API de Deep Learning está rodando!"}
-
-@app.post("https://deep-learning-pytorch-ci-cd-1.onrender.com/predict")  # 🔹 A rota precisa existir aqui!
+@app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    """Recebe uma imagem e retorna a previsão do modelo"""
-    
-    # Ler a imagem enviada pelo usuário
-    image = Image.open(io.BytesIO(await file.read()))
-    image = transform(image).unsqueeze(0)  # Adicionar dimensão do batch
-    
-    # Fazer previsão
+    # Ler a imagem enviada
+    contents = await file.read()
+    image = Image.open(io.BytesIO(contents)).convert("RGB")
+    image = transform(image).unsqueeze(0)
+
+    # Fazer a previsão
     with torch.no_grad():
         output = model(image)
-        predicted_class = torch.argmax(output, dim=1).item()
-
-    return {"class": predicted_class}
-
-
-@app.get("/")  
-def home():
-    return {"message": "API de Deep Learning está rodando!"}
-
-@app.post("https://deep-learning-pytorch-ci-cd-1.onrender.com/predict")  # 🔹 A rota precisa existir aqui!
-async def predict(file: UploadFile = File(...)):
-    """Recebe uma imagem e retorna a previsão do modelo"""
-    
-    # Ler a imagem enviada pelo usuário
-    image = Image.open(io.BytesIO(await file.read()))
-    image = transform(image).unsqueeze(0)  # Adicionar dimensão do batch
-    
-    # Fazer previsão
-    with torch.no_grad():
-        output = model(image)
-        predicted_class = torch.argmax(output, dim=1).item()
+        _, predicted = torch.max(output, 1)
+        predicted_class = predicted.item()
 
     return {"class": predicted_class}
 

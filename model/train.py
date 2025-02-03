@@ -2,66 +2,50 @@
 
 # Script básico para treinamento
 
+# model/train.py
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torchvision
-import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms, models
 
-# Classe que define o modelo de Rede Neural Simples
-class NeuralNet(nn.Module):
-    def __init__(self):
-        super(NeuralNet, self).__init__()
-        # Primeira camada linear: de 28*28 entradas para 128 saídas
-        self.layer1 = nn.Linear(28*28, 128)
-        # Segunda camada linear: de 128 entradas para 10 saídas (classes)
-        self.layer2 = nn.Linear(128, 10)
-
-    # Função que define o caminho que a entrada percorre na rede
-    def forward(self, x):
-        # Redimensiona (flatten) a entrada para um vetor de 1D com 28*28 elementos
-        x = x.view(-1, 28*28)  
-        # Aplica a função de ativação ReLU na primeira camada
-        x = torch.relu(self.layer1(x))
-        # Passa a saída da primeira camada para a segunda camada
-        x = self.layer2(x)
-        return x
-
-# Prepara os dados utilizando transformações
+# Definir transformações para as imagens
 transform = transforms.Compose([
-    transforms.ToTensor(),                    # Converte imagens para tensores
-    transforms.Normalize((0.5,), (0.5,))      # Normaliza os tensores
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Baixa e prepara o dataset MNIST para treinamento
-trainset = torchvision.datasets.MNIST(
-    root='./data', 
-    train=True, 
-    download=True, 
-    transform=transform
-)
+# Carregar dados de treinamento
+train_dataset = datasets.ImageFolder('data/train', transform=transform)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
-# Cria um DataLoader para iterar pelo dataset de treinamento
-trainloader = torch.utils.data.DataLoader(
-    trainset, 
-    batch_size=64, 
-    shuffle=True
-)
+# Definir o modelo (usando ResNet18 pré-treinada)
+model = models.resnet18(pretrained=True)
+num_ftrs = model.fc.in_features
+model.fc = nn.Linear(num_ftrs, len(train_dataset.classes))  # Ajustar para o número de classes
 
-# Instancia o modelo, a função de loss e o otimizador
-model = NeuralNet()
-criterion = nn.CrossEntropyLoss()               # Função de perda: Cross-Entropy Loss
-optimizer = optim.Adam(model.parameters(), lr=0.001)  # Otimizador: Adam com taxa de aprendizado de 0.001
+# Definir loss e otimizador
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Loop de treinamento do modelo
-for epoch in range(5):  # Treina por 5 épocas
-    for images, labels in trainloader:
-        optimizer.zero_grad()                 # Zera os gradientes do otimizador
-        outputs = model(images)               # Passa as imagens pelo modelo
-        loss = criterion(outputs, labels)     # Calcula a perda comparando as saídas com os rótulos
-        loss.backward()                       # Calcula os gradientes da perda
-        optimizer.step()                      # Atualiza os pesos do modelo
+# Treinar o modelo
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
 
-# Salva o modelo treinado no disco
-torch.save(model.state_dict(), "model/model.pth")
-print("Modelo treinado e salvo!")
+for epoch in range(5):  # 5 épocas
+    model.train()
+    running_loss = 0.0
+    for inputs, labels in train_loader:
+        inputs, labels = inputs.to(device), labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item()
+    print(f"Epoch {epoch+1}, Loss: {running_loss/len(train_loader)}")
+
+# Salvar o modelo treinado
+torch.save(model.state_dict(), 'model/model.pth')
+print("Modelo treinado e salvo em model/model.pth")

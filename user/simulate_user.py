@@ -9,7 +9,7 @@ import io
 from PIL import Image
 
 # 🔹 Substitua pela URL real do Render
-API_URL = "https://deep-learning-pytorch-ci-cd-1.onrender.com"
+API_URL = "https://deep-learning-pytorch-ci-cd-1.onrender.com/predict"
 
 # 🔹 Definir transformações para converter a imagem do MNIST
 transform = transforms.Compose([

@@ -5,36 +5,51 @@
 import requests
 import torch
 from torchvision import datasets, transforms
-import random
 import io
+from PIL import Image
 
-# URL da API de previsão (troque pelo endereço correto do servidor)
-API_URL = "http://meuservidor.com/predict"
+# 🔹 Substitua pela URL real do Render
+API_URL = "https://deep-learning-pytorch-ci-cd-1.onrender.com"
 
-# Carregar o conjunto de validação MNIST
+# 🔹 Definir transformações para converter a imagem do MNIST
+transform = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
+    transforms.Resize((28, 28)),
+    transforms.ToTensor()
+])
+
+# 🔹 Carregar o conjunto de validação do MNIST
 val_dataset = datasets.MNIST(
-    root=".",  # Diretório onde o dataset será salvo
-    train=False,  # Define que é o conjunto de validação
-    download=True,  # Baixa o dataset caso não exista
-    transform=transforms.ToTensor()  # Converte as imagens para tensores
+    root=".", train=False, download=True, transform=transform
 )
 
-# Escolher uma imagem aleatória do dataset
-idx = random.randint(0, len(val_dataset) - 1)
-image, label = val_dataset[idx]  # Pegamos a imagem e seu rótulo verdadeiro
+def send_image(image_tensor):
+    """ Envia uma imagem do MNIST para a API hospedada no Render """
 
-# Converter o tensor da imagem para bytes (necessário para enviar via API)
-image_bytes = io.BytesIO()
-torch.save(image, image_bytes)  # Salvar como bytes
-image_bytes.seek(0)  # Posicionar no início do arquivo de bytes
+    # Converter tensor para imagem PIL
+    image_pil = transforms.ToPILImage()(image_tensor.squeeze(0))
 
-# Enviar solicitação para a API com a imagem
-files = {"file": image_bytes.getvalue()}  # Criar o payload da requisição
-response = requests.post(API_URL, files=files)
+    # Salvar a imagem em memória como um arquivo temporário
+    img_bytes = io.BytesIO()
+    image_pil.save(img_bytes, format="PNG")
+    img_bytes.seek(0)
 
-# Exibir a resposta da API
-print(f"Classe real: {label}")
-print(f"Classe prevista pelo modelo: {response.json().get('class')}")
+    # Enviar a imagem para a API
+    response = requests.post(API_URL, files={"file": img_bytes})
+    
+    return response.json()
+
+if __name__ == "__main__":
+    # Escolher uma imagem de teste do MNIST (exemplo: primeira imagem)
+    image_tensor, label = val_dataset[0]  # Pegando a primeira imagem e seu rótulo verdadeiro
+    
+    # Fazer a previsão
+    result = send_image(image_tensor)
+
+    # Exibir a resposta da API e o rótulo real
+    print(f"Resposta da API: {result}")
+    print(f"Rótulo verdadeiro: {label}")
+
 
 
 

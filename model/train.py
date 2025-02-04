@@ -1,59 +1,64 @@
-# model/train.py
+# Criando a Rede Neural para Treinamento (train.py)
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision.transforms as transforms
+import torchvision.datasets as datasets
 from torch.utils.data import DataLoader, random_split
-from torchvision import datasets, transforms
-from torchvision.models import resnet18
-import os
+from torchvision import models
 
-# Definir transformações para as imagens (tons de cinza)
-transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),  # Converte para tons de cinza
-    transforms.Resize((224, 224)),               # Redimensiona para 224x224
-    transforms.ToTensor(),                       # Converte para tensor
-    transforms.Normalize(mean=[0.5], std=[0.5])  # Normaliza
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Transformações para as imagens
+data_transforms = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.5], [0.5])
 ])
 
-# Carregar dados
-dataset = datasets.ImageFolder('data', transform=transform)
-
-# Dividir em treino e teste (80% treino, 20% teste)
+# Carregando as imagens
+data_dir = "data"
+dataset = datasets.ImageFolder(root=data_dir, transform=data_transforms)
 train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-
-# Criar DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-# Definir a CNN (usando ResNet18 modificada para tons de cinza)
-model = resnet18(pretrained=False)
-model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)  # Ajustar para 1 canal de entrada
-num_ftrs = model.fc.in_features
-model.fc = nn.Linear(num_ftrs, 2)  # 2 classes: osteoporose e normal
+# Criando a CNN
+class CNNModel(nn.Module):
+    def __init__(self):
+        super(CNNModel, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.fc1 = nn.Linear(32 * 112 * 112, 2)
 
-# Definir loss e otimizador
+    def forward(self, x):
+        x = self.pool(self.relu(self.conv1(x)))
+        x = x.view(x.size(0), -1)
+        x = self.fc1(x)
+        return x
+
+model = CNNModel().to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Treinar o modelo
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
-
-for epoch in range(10):  # 10 épocas
+# Treinamento do modelo
+epochs = 10
+for epoch in range(epochs):
     model.train()
     running_loss = 0.0
-    for inputs, labels in train_loader:
-        inputs, labels = inputs.to(device), labels.to(device)
+    for images, labels in train_loader:
+        images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
-        outputs = model(inputs)
+        outputs = model(images)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
     print(f"Epoch {epoch+1}, Loss: {running_loss/len(train_loader)}")
 
-# Salvar o modelo treinado
-torch.save(model.state_dict(), 'model/model.pth')
-print("Modelo treinado e salvo em model/model.pth")
+torch.save(model.state_dict(), "model/model.pth")

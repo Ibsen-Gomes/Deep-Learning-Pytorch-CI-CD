@@ -1,35 +1,33 @@
-# api/main.py
+# Criando a API para servir o modelo (main.py)
 from fastapi import FastAPI, File, UploadFile
-import torch
-from torchvision import transforms
 from PIL import Image
 import io
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
+from model import CNNModel
 
 app = FastAPI()
 
-# Carregar o modelo treinado
-model = torch.load('model/model.pth', map_location=torch.device('cpu'))
+model = CNNModel()
+model.load_state_dict(torch.load("model/model.pth", map_location=torch.device('cpu')))
 model.eval()
 
-# Transformações para a imagem de entrada
-transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5], std=[0.5])
-])
+def transform_image(image_bytes):
+    transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5], [0.5])
+    ])
+    image = Image.open(io.BytesIO(image_bytes))
+    return transform(image).unsqueeze(0)
 
-@app.post("https://deep-learning-pytorch-ci-cd-1.onrender.com/predict")
-async def predict(file: UploadFile = File(...)):
-    # Ler a imagem enviada
-    contents = await file.read()
-    image = Image.open(io.BytesIO(contents)).convert("L")  # Converte para tons de cinza
-    image = transform(image).unsqueeze(0)
-
-    # Fazer a previsão
-    with torch.no_grad():
-        output = model(image)
-        _, predicted = torch.max(output, 1)
-        predicted_class = "osteoporosis" if predicted.item() == 0 else "normal"
-
-    return {"class": predicted_class}
+@app.post("/predict")
+def predict(file: UploadFile = File(...)):
+    image_bytes = file.file.read()
+    image = transform_image(image_bytes)
+    output = model(image)
+    _, predicted = torch.max(output, 1)
+    classes = ["normal", "osteoporosis"]
+    return {"prediction": classes[predicted.item()]}

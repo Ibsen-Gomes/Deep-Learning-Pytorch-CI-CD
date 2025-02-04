@@ -1,82 +1,27 @@
-name: CI/CD for Osteoporosis Detection
+# Configuração do CI/CD com GitHub Actions (ci-cd.yml)
+name: Deploy API
 
 on:
   push:
     branches:
-      - deploy
+      - main
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v2
-
-      - name: Configurar Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.9"
-
-      - name: Instalar dependências
-        run: pip install -r api/requirements.txt
-
-      - name: Testar modelo
-        run: pytest tests/test_train.py
-
-  train:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v2
-
-      - name: Configurar Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.9"
-
-      - name: Instalar dependências
-        run: pip install -r api/requirements.txt
-
-      - name: Treinar modelo
-        run: python model/train.py
-
-      - name: Armazenar modelo treinado
-        uses: actions/upload-artifact@v4
-        with:
-          name: trained-model
-          path: model/model.pth
-
   deploy:
-    needs: train
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout do código
+      - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Configurar Python
-        uses: actions/setup-python@v3
+      - name: Setup Python
+        uses: actions/setup-python@v2
         with:
-          python-version: "3.9"
-
-      - name: Instalar dependências
-        run: pip install -r api/requirements.txt
-
-      - name: Baixar modelo treinado
-        uses: actions/download-artifact@v4
-        with:
-          name: trained-model
-          path: model/
-
-      - name: Implantar no Render
-        run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &  # Executa em background
-          # Instalar o Render CLI (se necessário)
-          #npm install -g render-cli
-
-          # Fazer login no Render
-          #render login
-
-          # Implantar o serviço
-          #render services create --name osteoporosis-api --type web --start-command "uvicorn api.main:app --host 0.0.0.0 --port 8000"
-
-        
+          python-version: 3.8
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: pytest
+      - name: Deploy to Render
+        run: |
+          curl -X POST "$RENDER_DEPLOY_HOOK"
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}

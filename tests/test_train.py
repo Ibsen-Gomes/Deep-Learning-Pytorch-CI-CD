@@ -1,5 +1,10 @@
 # Importa a classe SimpleCNN do módulo model.train
 from model.train import SimpleCNN
+from fastapi import FastAPI, File, UploadFile
+from PIL import Image
+import torch
+from torchvision import transforms
+import io
 
 def test_model_output():
     """

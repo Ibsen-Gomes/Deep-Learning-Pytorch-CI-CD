@@ -32,10 +32,20 @@ train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 # Definir a CNN (usando ResNet18 modificada para tons de cinza)
-model = resnet18(pretrained=False)
-model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)  # Ajustar para 1 canal de entrada
-num_ftrs = model.fc.in_features
-model.fc = nn.Linear(num_ftrs, 2)  # 2 classes: osteoporose e normal
+def create_model():
+    """
+    Cria e retorna uma instância do modelo ResNet18 modificada para tons de cinza.
+    A camada de entrada é ajustada para 1 canal (tons de cinza), e a camada de saída
+    é ajustada para 2 classes (osteoporose e normal).
+    """
+    model = resnet18(pretrained=False)
+    model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)  # Ajustar para 1 canal de entrada
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 2)  # 2 classes: osteoporose e normal
+    return model
+
+# Criar o modelo
+model = create_model()
 
 # Definir loss e otimizador
 criterion = nn.CrossEntropyLoss()

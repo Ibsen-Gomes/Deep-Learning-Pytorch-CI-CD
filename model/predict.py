@@ -18,7 +18,7 @@ def predict(image_path, api_url):
 
 if __name__ == '__main__':
     # Substitua pela URL da sua API no Render
-    api_url = 'https://seu-servico-render.onrender.com/predict/'
+    api_url = 'https://deep-learning-pytorch-ci-cd-1.onrender.com/predict/'
     
     # Substitua pelo caminho da imagem que você deseja prever
     image_path = 'path_to_your_image.jpg'

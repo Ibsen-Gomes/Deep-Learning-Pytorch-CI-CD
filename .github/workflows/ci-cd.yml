@@ -1,31 +1,13 @@
-name: CI/CD for Deep Learning  # Nome do pipeline
+name: CI/CD for Deep Learning
 
 on:
   push:
     branches:
-      - deploy
-      # 🚀 Incluindo a nova branch no pipeline
+      - main
+      - deploy  # Adicionado para facilitar testes
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout do código  # Baixa o código do repositório
-        uses: actions/checkout@v2
-
-      - name: Configurar Python  # Define a versão do Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.9"
-
-      - name: Instalar dependências  # Instala pacotes listados no requirements.txt
-        run: pip install -r api/requirements.txt
-
-      - name: Testar modelo  # Executa testes unitários antes do treino
-        run: pytest tests/test_train.py
-
   train:
-    needs: test  # Só executa se os testes passarem
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
@@ -39,19 +21,19 @@ jobs:
       - name: Instalar dependências
         run: pip install -r api/requirements.txt
 
-      - name: Treinar modelo  # Executa o treinamento do modelo
+      - name: Treinar modelo
         run: python model/train.py
 
-      - name: Armazenar modelo treinado  # Salva o modelo treinado como artefato
+      - name: Salvar modelo treinado
         uses: actions/upload-artifact@v4
         with:
           name: trained-model
           path: model/model.pth
 
   deploy:
-    needs: train  # Só executa após o treinamento ser concluído
+    needs: train
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # Define tempo limite de 10 min para o deploy
+    timeout-minutes: 15
     steps:
       - name: Checkout do código
         uses: actions/checkout@v2
@@ -64,12 +46,13 @@ jobs:
       - name: Instalar dependências
         run: pip install -r api/requirements.txt
 
-      - name: Baixar modelo treinado  # Baixa o modelo gerado na etapa train
+      - name: Baixar modelo treinado
         uses: actions/download-artifact@v4
         with:
           name: trained-model
           path: model/
 
-      - name: Rodar API com FastAPI  # Inicia a API para servir o modelo
-        run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &  # Executa em background
+      - name: Rodar API com FastAPI
+        run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &
+
 

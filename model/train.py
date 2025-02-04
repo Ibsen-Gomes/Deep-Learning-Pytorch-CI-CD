@@ -1,29 +1,37 @@
-# 30-01-2025
-
-# Script básico para treinamento
-
 # model/train.py
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms, models
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, transforms
+from torchvision.models import resnet18
+import os
 
-# Definir transformações para as imagens
+# Definir transformações para as imagens (tons de cinza)
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Grayscale(num_output_channels=1),  # Converte para tons de cinza
+    transforms.Resize((224, 224)),               # Redimensiona para 224x224
+    transforms.ToTensor(),                       # Converte para tensor
+    transforms.Normalize(mean=[0.5], std=[0.5])  # Normaliza
 ])
 
-# Carregar dados de treinamento
-train_dataset = datasets.ImageFolder('data/train', transform=transform)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+# Carregar dados
+dataset = datasets.ImageFolder('data', transform=transform)
 
-# Definir o modelo (usando ResNet18 pré-treinada)
-model = models.resnet18(pretrained=True)
+# Dividir em treino e teste (80% treino, 20% teste)
+train_size = int(0.8 * len(dataset))
+test_size = len(dataset) - train_size
+train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+# Criar DataLoaders
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+# Definir a CNN (usando ResNet18 modificada para tons de cinza)
+model = resnet18(pretrained=False)
+model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)  # Ajustar para 1 canal de entrada
 num_ftrs = model.fc.in_features
-model.fc = nn.Linear(num_ftrs, len(train_dataset.classes))  # Ajustar para o número de classes
+model.fc = nn.Linear(num_ftrs, 2)  # 2 classes: osteoporose e normal
 
 # Definir loss e otimizador
 criterion = nn.CrossEntropyLoss()
@@ -33,7 +41,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-for epoch in range(5):  # 5 épocas
+for epoch in range(10):  # 10 épocas
     model.train()
     running_loss = 0.0
     for inputs, labels in train_loader:

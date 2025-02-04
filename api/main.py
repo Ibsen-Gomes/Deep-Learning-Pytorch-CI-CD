@@ -1,41 +1,35 @@
-# 30-01-2025
-
-# 30-01-2025
-
-# Script básico para treinamento
-
-from fastapi import FastAPI, UploadFile, File
+# api/main.py
+from fastapi import FastAPI, File, UploadFile
+import torch
 from torchvision import transforms
 from PIL import Image
-import torch
 import io
-import torch.nn as nn
 
 app = FastAPI()
 
 # Carregar o modelo treinado
-model = torch.load('model/model.pth')
+model = torch.load('model/model.pth', map_location=torch.device('cpu'))
 model.eval()
 
 # Transformações para a imagem de entrada
 transform = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-@app.post("/predict")
+@app.post("https://deep-learning-pytorch-ci-cd-1.onrender.com/predict")
 async def predict(file: UploadFile = File(...)):
     # Ler a imagem enviada
     contents = await file.read()
-    image = Image.open(io.BytesIO(contents)).convert("RGB")
+    image = Image.open(io.BytesIO(contents)).convert("L")  # Converte para tons de cinza
     image = transform(image).unsqueeze(0)
 
     # Fazer a previsão
     with torch.no_grad():
         output = model(image)
         _, predicted = torch.max(output, 1)
-        predicted_class = predicted.item()
+        predicted_class = "osteoporosis" if predicted.item() == 0 else "normal"
 
     return {"class": predicted_class}
-

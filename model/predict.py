@@ -2,7 +2,7 @@
 import requests
 
 # URL da API hospedada no Render
-API_URL = "https://deep-learning-api.onrender.com/predict"
+API_URL = "https://deep-learning-pytorch-ci-cd-1.onrender.com/predict"
 
 # Função para enviar uma imagem e obter a previsão
 def predict_image(image_path):
@@ -20,7 +20,7 @@ def predict_image(image_path):
 # Exemplo de uso
 if __name__ == "__main__":
     # Caminho para a imagem que você quer enviar
-    image_path = "caminho/para/sua/imagem.jpg"
+    image_path = "validation/normal/10.png"
 
     # Faz a previsão
     result = predict_image(image_path)

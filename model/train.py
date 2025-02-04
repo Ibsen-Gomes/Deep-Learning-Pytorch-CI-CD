@@ -25,7 +25,7 @@ class KneeDataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
-        image = Image.open(image_path).convert('L')  # Convert to grayscale
+        image = Image.open(image_path).convert('L')  # Converte para tons de cinza
         label = self.labels[idx]
 
         if self.transform:

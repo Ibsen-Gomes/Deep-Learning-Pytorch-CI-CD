@@ -1,83 +1,63 @@
-import os
+# model/train.py
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
-from PIL import Image
-from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, transforms
+from torchvision.models import resnet18
+import os
 
-class KneeDataset(Dataset):
-    def __init__(self, data_dir, transform=None):
-        self.data_dir = data_dir
-        self.transform = transform
-        self.image_paths = []
-        self.labels = []
+# Definir transformações para as imagens
+transform = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),  # Converte para tons de cinza
+    transforms.Resize((224, 224)),               # Redimensiona para 224x224
+    transforms.ToTensor(),                       # Converte para tensor
+    transforms.Normalize(mean=[0.5], std=[0.5])  # Normaliza
+])
 
-        for label, class_name in enumerate(['normal', 'osteoporosis']):
-            class_dir = os.path.join(data_dir, class_name)
-            for image_name in os.listdir(class_dir):
-                self.image_paths.append(os.path.join(class_dir, image_name))
-                self.labels.append(label)
+# 🔹 Carregar apenas as pastas `osteoporosis/` e `normal/` (ignorando `validation/`)
+train_data_path = os.path.join('data', 'osteoporosis')
+train_data_path2 = os.path.join('data', 'normal')
 
-    def __len__(self):
-        return len(self.image_paths)
+# 🔹 Criar datasets separados para treino/teste
+train_dataset = datasets.ImageFolder(root='data', transform=transform)
 
-    def __getitem__(self, idx):
-        image_path = self.image_paths[idx]
-        image = Image.open(image_path).convert('L')  # Converte para tons de cinza
-        label = self.labels[idx]
+# 🔹 Dividir em treino e teste (80% treino, 20% teste)
+train_size = int(0.8 * len(train_dataset))
+test_size = len(train_dataset) - train_size
+train_dataset, test_dataset = random_split(train_dataset, [train_size, test_size])
 
-        if self.transform:
-            image = self.transform(image)
+# Criar DataLoaders
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-        return image, label
+# Definir a CNN (usando ResNet18 modificada para tons de cinza)
+model = resnet18(pretrained=False)
+model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)  # Ajustar para 1 canal de entrada
+num_ftrs = model.fc.in_features
+model.fc = nn.Linear(num_ftrs, 2)  # 2 classes: osteoporose e normal
 
-class SimpleCNN(nn.Module):
-    def __init__(self):
-        super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.fc1 = nn.Linear(64 * 7 * 7, 128)
-        self.fc2 = nn.Linear(128, 2)
+# Definir loss e otimizador
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    def forward(self, x):
-        x = self.pool(torch.relu(self.conv1(x)))
-        x = self.pool(torch.relu(self.conv2(x)))
-        x = x.view(-1, 64 * 7 * 7)
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+# Treinar o modelo
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
 
-def train():
-    transform = transforms.Compose([
-        transforms.Resize((28, 28)),
-        transforms.ToTensor(),
-    ])
+for epoch in range(10):  # 10 épocas
+    model.train()
+    running_loss = 0.0
+    for inputs, labels in train_loader:
+        inputs, labels = inputs.to(device), labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item()
+    print(f"Epoch {epoch+1}, Loss: {running_loss/len(train_loader)}")
 
-    dataset = KneeDataset(data_dir='../data', transform=transform)
-    train_data, val_data = train_test_split(dataset, test_size=0.2, random_state=42)
-
-    train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_data, batch_size=32, shuffle=False)
-
-    model = SimpleCNN()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    for epoch in range(10):
-        model.train()
-        for images, labels in train_loader:
-            optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
-        print(f'Epoch {epoch+1}, Loss: {loss.item()}')
-
-    torch.save(model.state_dict(), 'model.pth')
-
-if __name__ == '__main__':
-    train()
+# Salvar o modelo treinado
+torch.save(model.state_dict(), 'model/model.pth')
+print("Modelo treinado e salvo em model/model.pth")

@@ -21,6 +21,6 @@ if __name__ == '__main__':
     api_url = 'https://deep-learning-pytorch-ci-cd-1.onrender.com/predict/'
     
     # Substitua pelo caminho da imagem que você deseja prever
-    image_path = 'path_to_your_image.jpg'
+    image_path = 'validation/normal/10.png'
     
     print(f'Prediction: {predict(image_path, api_url)}')

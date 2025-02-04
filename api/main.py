@@ -26,10 +26,11 @@ class SimpleCNN(torch.nn.Module):
 
 # Carrega o modelo treinado
 model = SimpleCNN()
-model.load_state_dict(torch.load('model.pth'))
+model.load_state_dict(torch.load("model/model.pth", map_location=torch.device("cpu")))
+#model.load_state_dict(torch.load('model/model.pth')) ######
 model.eval()
 
-@app.post("/predict/")
+@app.post("https://deep-learning-pytorch-ci-cd-1.onrender.com/predict")
 async def predict(file: UploadFile = File(...)):
     # Lê a imagem enviada
     image_data = await file.read()

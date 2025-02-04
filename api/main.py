@@ -1,23 +1,19 @@
 from fastapi import FastAPI, File, UploadFile
 import torch
 from torchvision import transforms
-from torchvision.models import mobilenet_v2
 from PIL import Image
 import io
+from model.train import SimpleCNN  # Certifique-se de importar a mesma arquitetura usada no treinamento
 
 # Inicializar a API
 app = FastAPI()
 
-# ✅ Carregar o modelo MobileNetV2 corretamente
-model = mobilenet_v2(weights=None)  # Tem que ser igual ao treino
-num_ftrs = model.classifier[1].in_features
-model.classifier[1] = torch.nn.Linear(num_ftrs, 2)  # Duas classes: Normal e Osteoartrite
-
-# ✅ Carregar pesos treinados
+# Criar o modelo e carregar os pesos corretamente
+model = SimpleCNN()  # Usa a mesma arquitetura definida em train.py
 model.load_state_dict(torch.load("model/model.pth", map_location=torch.device('cpu')))
 model.eval()
 
-# Definir transformações
+# Definir transformações para preprocessamento da imagem
 transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.Resize((224, 224)),
@@ -27,20 +23,20 @@ transform = transforms.Compose([
 
 @app.post("https://deep-learning-pytorch-ci-cd-1.onrender.com/predict/")
 async def predict(file: UploadFile = File(...)):
-    """Recebe uma imagem e retorna a previsão"""
+    """Recebe uma imagem e retorna a previsão do modelo"""
     try:
-        # Ler a imagem enviada
+        # Ler a imagem enviada pelo usuário
         image = Image.open(io.BytesIO(await file.read()))
+        
+        # Converter para escala de cinza e aplicar transformações
+        image = transform(image).unsqueeze(0)  # Adiciona dimensão batch
 
-        # Transformar a imagem para formato adequado
-        image = transform(image).unsqueeze(0)  # Adiciona batch dimension
-
-        # Fazer previsão
+        # Fazer a previsão
         with torch.no_grad():
             output = model(image)
             prediction = torch.argmax(output, dim=1).item()
 
-        # Mapear saída para as classes
+        # Mapear saída do modelo para as classes
         classes = ["Normal", "Osteoartrite"]
         return {"prediction": classes[prediction]}
 

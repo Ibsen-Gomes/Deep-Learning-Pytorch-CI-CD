@@ -1,35 +1,51 @@
+# model/train.py
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-from torchvision.models import mobilenet_v2  # ✅ Importando MobileNetV2
+from torchvision.models import resnet18
 import os
 
-# Definir transformações para imagens em tons de cinza
+# Definir transformações para as imagens
 transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),  # Converte para escala de cinza
-    transforms.Resize((224, 224)),  # Redimensiona para o tamanho adequado
-    transforms.ToTensor(),  # Converte para tensor
-    transforms.Normalize(mean=[0.5], std=[0.5])  # Normaliza os dados
+    transforms.Grayscale(num_output_channels=1),  # Converte para tons de cinza
+    transforms.Resize((224, 224)),               # Redimensiona para 224x224
+    transforms.ToTensor(),                       # Converte para tensor
+    transforms.Normalize(mean=[0.5], std=[0.5])  # Normaliza
 ])
 
-# Carregar os dados das pastas 'osteoporosis' e 'normal'
-dataset = datasets.ImageFolder('data', transform=transform)
+# 🔹 Carregar apenas as pastas `osteoporosis/` e `normal/` (ignorando `validation/`)
+train_data_path = os.path.join('data', 'osteoporosis')
+train_data_path2 = os.path.join('data', 'normal')
 
-# Dividir o dataset em treino (80%) e teste (20%)
-train_size = int(0.8 * len(dataset))
-test_size = len(dataset) - train_size
-train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+# 🔹 Criar datasets separados para treino/teste
+train_dataset = datasets.ImageFolder(root='data', transform=transform)
+
+# 🔹 Dividir em treino e teste (80% treino, 20% teste)
+train_size = int(0.8 * len(train_dataset))
+test_size = len(train_dataset) - train_size
+train_dataset, test_dataset = random_split(train_dataset, [train_size, test_size])
 
 # Criar DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-# ✅ Modificando para usar MobileNetV2
-model = mobilenet_v2(weights=None)  # ❌ Remove pretrained para economizar memória
-num_ftrs = model.classifier[1].in_features
-model.classifier[1] = nn.Linear(num_ftrs, 2)  # 2 classes: Osteoartrite e Normal
+# Definir a CNN (usando ResNet18 modificada para tons de cinza)
+def create_model():
+    """
+    Cria e retorna uma instância do modelo ResNet18 modificada para tons de cinza.
+    A camada de entrada é ajustada para 1 canal (tons de cinza), e a camada de saída
+    é ajustada para 2 classes (osteoporose e normal).
+    """
+    model = resnet18(pretrained=False)
+    model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)  # Ajustar para 1 canal de entrada
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 2)  # 2 classes: osteoporose e normal
+    return model
+
+# Criar o modelo
+model = create_model()
 
 # Definir loss e otimizador
 criterion = nn.CrossEntropyLoss()
@@ -39,7 +55,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-for epoch in range(10):  # 10 épocas
+for epoch in range(5):  # 10 épocas
     model.train()
     running_loss = 0.0
     for inputs, labels in train_loader:
@@ -52,6 +68,6 @@ for epoch in range(10):  # 10 épocas
         running_loss += loss.item()
     print(f"Epoch {epoch+1}, Loss: {running_loss/len(train_loader)}")
 
-# ✅ Salvar o modelo treinado
+# Salvar o modelo treinado
 torch.save(model.state_dict(), 'model/model.pth')
 print("Modelo treinado e salvo em model/model.pth")

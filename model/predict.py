@@ -1,28 +1,26 @@
-# model/predict.py
 import requests
+from PIL import Image
+import io
 
-# URL da API hospedada no Render
-API_URL = "https://deep-learning-pytorch-ci-cd-1.onrender.com/predict"
+def predict(image_path, api_url):
+    # Abre a imagem e converte para bytes
+    with open(image_path, 'rb') as image_file:
+        image_bytes = image_file.read()
 
-# Função para enviar uma imagem e obter a previsão
-def predict_image(image_path):
-    try:
-        # Abre a imagem no modo binário
-        with open(image_path, "rb") as image_file:
-            # Envia a imagem para a API
-            response = requests.post(API_URL, files={"file": image_file})
-            response.raise_for_status()  # Verifica se a requisição foi bem-sucedida
-            return response.json()  # Retorna a resposta da API
-    except requests.exceptions.RequestException as e:
-        print(f"Erro ao conectar à API: {e}")
-        return None
+    # Envia a imagem para a API no Render
+    response = requests.post(api_url, files={'file': image_bytes})
 
-# Exemplo de uso
-if __name__ == "__main__":
-    # Caminho para a imagem que você quer enviar
-    image_path = "validation/normal/10.png"
+    if response.status_code == 200:
+        prediction = response.json().get('prediction', 'Erro na previsão')
+        return prediction
+    else:
+        return f"Erro ao acessar a API: {response.status_code}"
 
-    # Faz a previsão
-    result = predict_image(image_path)
-    if result:
-        print("Previsão:", result)
+if __name__ == '__main__':
+    # Substitua pela URL da sua API no Render
+    api_url = 'https://seu-servico-render.onrender.com/predict/'
+    
+    # Substitua pelo caminho da imagem que você deseja prever
+    image_path = 'path_to_your_image.jpg'
+    
+    print(f'Prediction: {predict(image_path, api_url)}')

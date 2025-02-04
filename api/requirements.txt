@@ -1,8 +1,8 @@
+torch
+torchvision
+fastapi
 uvicorn
+pillow
 pytest
 requests
 scikit-learn
-torch==2.0.1
-torchvision==0.15.2
-fastapi==0.95.0
-pillow==9.5.0

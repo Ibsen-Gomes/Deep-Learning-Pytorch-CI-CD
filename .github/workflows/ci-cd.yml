@@ -72,4 +72,3 @@ jobs:
 
       - name: Rodar API com FastAPI  # Inicia a API para servir o modelo
         run: uvicorn api.main:app --host 0.0.0.0 --port 8000 &  # Executa em background
-

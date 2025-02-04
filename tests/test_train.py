@@ -1,21 +1,24 @@
-# Importa a classe SimpleCNN do módulo model.train
-from model.train import SimpleCNN
-from fastapi import FastAPI, File, UploadFile
-from PIL import Image
+# tests/test_train.py
 import torch
-from torchvision import transforms
-import io
+import sys
+import os
+
+# Adiciona o diretório raiz do projeto ao caminho de importação
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Importa a função create_model do módulo model.train
+from model.train import create_model
 
 def test_model_output():
     """
-    Testa a saída do modelo SimpleCNN para garantir que ele retorna o formato esperado.
+    Testa a saída do modelo para garantir que ele retorna o formato esperado.
     """
-    # Cria uma instância do modelo SimpleCNN
-    model = SimpleCNN()
+    # Cria uma instância do modelo
+    model = create_model()
 
-    # Gera uma entrada aleatória (dummy_input) com forma (1, 1, 28, 28)
-    # Isso simula uma imagem MNIST (28x28 pixels) em tons de cinza (1 canal)
-    dummy_input = torch.randn(1, 1, 28, 28)
+    # Gera uma entrada aleatória (dummy_input) com forma (1, 1, 224, 224)
+    # Isso simula uma imagem em tons de cinza (1 canal) com tamanho 224x224
+    dummy_input = torch.randn(1, 1, 224, 224)
 
     # Passa a entrada pelo modelo para obter a saída
     output = model(dummy_input)

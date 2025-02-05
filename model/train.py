@@ -4,8 +4,10 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-from torchvision.models import resnet18
 import os
+
+# Importar o modelo do arquivo model.py
+from model import model as custom_model
 
 # Definir transformações para as imagens
 transform = transforms.Compose([
@@ -15,37 +17,20 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5])  # Normaliza
 ])
 
-# 🔹 Carregar apenas as pastas `osteoporosis/` e `normal/` (ignorando `validation/`)
-train_data_path = os.path.join('data', 'osteoporosis')
-train_data_path2 = os.path.join('data', 'normal')
+# Criar dataset a partir das pastas `osteoporosis/` e `normal/`
+dataset = datasets.ImageFolder(root='data', transform=transform)
 
-# 🔹 Criar datasets separados para treino/teste
-train_dataset = datasets.ImageFolder(root='data', transform=transform)
-
-# 🔹 Dividir em treino e teste (80% treino, 20% teste)
-train_size = int(0.8 * len(train_dataset))
-test_size = len(train_dataset) - train_size
-train_dataset, test_dataset = random_split(train_dataset, [train_size, test_size])
+# 🔹 Dividir em treino (80%) e teste (20%)
+train_size = int(0.8 * len(dataset))
+test_size = len(dataset) - train_size
+train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
 # Criar DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-# Definir a CNN (usando ResNet18 modificada para tons de cinza)
-def create_model():
-    """
-    Cria e retorna uma instância do modelo ResNet18 modificada para tons de cinza.
-    A camada de entrada é ajustada para 1 canal (tons de cinza), e a camada de saída
-    é ajustada para 2 classes (osteoporose e normal).
-    """
-    model = resnet18(pretrained=False)
-    model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)  # Ajustar para 1 canal de entrada
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 2)  # 2 classes: osteoporose e normal
-    return model
-
-# Criar o modelo
-model = create_model()
+# Criar o modelo a partir do arquivo model.py
+model = custom_model.create_model()
 
 # Definir loss e otimizador
 criterion = nn.CrossEntropyLoss()
@@ -55,7 +40,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-for epoch in range(5):  # 10 épocas
+for epoch in range(5):  # 5 épocas
     model.train()
     running_loss = 0.0
     for inputs, labels in train_loader:
@@ -71,3 +56,4 @@ for epoch in range(5):  # 10 épocas
 # Salvar o modelo treinado
 torch.save(model.state_dict(), 'model/model.pth')
 print("Modelo treinado e salvo em model/model.pth")
+

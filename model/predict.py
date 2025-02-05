@@ -3,9 +3,11 @@ import torch
 import torchvision.transforms as transforms
 from PIL import Image
 import requests
-import sys
 import os
-from model import model as custom_model
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from model import create_model  # ✅ Agora a importação funcionará
 
 # 🔹 URL do modelo armazenado no GitHub Actions, na branch `deploy`
 GITHUB_MODEL_URL = "https://github.com/Ibsen-Gomes/Deep-Learning-Pytorch-CI-CD/raw/deploy/model/model.pth"
@@ -33,7 +35,7 @@ def download_model():
 download_model()
 
 # Criar o modelo idêntico ao usado no treinamento
-model = custom_model.create_model()
+model = create_model()
 model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
 model.eval()
 
@@ -59,7 +61,8 @@ def predict_image(image_path):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Uso: python predict.py <caminho_para_imagem>")
+        print("Uso: python model/predict.py validation/normal/10.png") 
+        # python model/predict.py validation/normal/10.png
     else:
         image_path = sys.argv[1]
         if os.path.exists(image_path):

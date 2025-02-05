@@ -5,9 +5,14 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from model import create_model  # ✅ Agora a importação funcionará
 
 # Importar o modelo do arquivo model.py
-from model import model as custom_model
+#from model.train import create_model  # ✅ Importação correta
+
 
 # Definir transformações para as imagens
 transform = transforms.Compose([
@@ -30,7 +35,7 @@ train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 # Criar o modelo a partir do arquivo model.py
-model = custom_model.create_model()
+model = create_model()
 
 # Definir loss e otimizador
 criterion = nn.CrossEntropyLoss()
@@ -56,4 +61,3 @@ for epoch in range(5):  # 5 épocas
 # Salvar o modelo treinado
 torch.save(model.state_dict(), 'model/model.pth')
 print("Modelo treinado e salvo em model/model.pth")
-

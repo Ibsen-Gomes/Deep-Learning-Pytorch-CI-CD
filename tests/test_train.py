@@ -3,26 +3,33 @@ import torch
 import sys
 import os
 
-# Adiciona o diretório raiz do projeto ao caminho de importação
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from model import create_model  # ✅ Agora a importação funcionará
 
-# Importa a função create_model do módulo model.train
-from model.train import create_model
+# Adiciona o diretório raiz do projeto ao caminho de importação
+#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# 🔹 Importa a função create_model do módulo model.train
+#from model import train as custom_model
 
 def test_model_output():
     """
     Testa a saída do modelo para garantir que ele retorna o formato esperado.
     """
-    # Cria uma instância do modelo
+    # 🔹 Cria uma instância do modelo com a arquitetura correta
     model = create_model()
 
-    # Gera uma entrada aleatória (dummy_input) com forma (1, 1, 224, 224)
-    # Isso simula uma imagem em tons de cinza (1 canal) com tamanho 224x224
-    dummy_input = torch.randn(1, 1, 224, 224)
+    # 🔹 Gera uma entrada aleatória (dummy_input) simulando uma imagem de raio-X
+    dummy_input = torch.randn(1, 1, 224, 224)  # (batch=1, canal=1, altura=224, largura=224)
 
-    # Passa a entrada pelo modelo para obter a saída
+    # 🔹 Passa a entrada pelo modelo para obter a saída
     output = model(dummy_input)
 
-    # Verifica se a forma da saída é (1, 2)
-    # O modelo deve retornar 2 valores, correspondentes às probabilidades de cada classe
-    assert output.shape == (1, 2), "O modelo não retorna 2 classes!"
+    # 🔹 Verifica se a forma da saída é (1, 2) -> 2 classes (normal e osteoporose)
+    assert output.shape == (1, 2), f"❌ Erro: Formato de saída esperado (1,2), mas recebeu {output.shape}"
+
+    print("✅ Teste passou: O modelo retorna a saída no formato esperado!")
+
+# 🔹 Permite rodar o teste manualmente (caso queira testar localmente)
+if __name__ == "__main__":
+    test_model_output()

@@ -3,8 +3,11 @@ import torch
 import sys
 import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from model import create_model  # ✅ Agora a importação funcionará
+# Adicionar o caminho da pasta "model" ao sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'model')))
+
+# Agora a importação funcionará corretamente
+from model import create_model  # ✅ Correto
 
 # Adiciona o diretório raiz do projeto ao caminho de importação
 #sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
